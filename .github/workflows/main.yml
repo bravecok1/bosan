@@ -1,4 +1,4 @@
-name: RDP + Tailscale + RustDesk + (Optional) Chrome Remote Desktop (A)
+name: RDP + Tailscale + RustDesk + (Optional) Chrome Remote Desktop (B)
 
 on:
   workflow_dispatch:
@@ -9,7 +9,7 @@ on:
       quick_test:         { description: "Run 5-minute test", type: boolean, default: false }
       runtime_minutes:    { description: "Runtime (max 360; default 355 when not test)", required: false, default: "355" }
       do_purge:           { description: "Purge bullet* devices at start (single instance only)", required: false, default: "true" }
-      cycles:             { description: "0=stop after A; N=handoffs left incl this run", required: false, default: "0" }
+      cycles:             { description: "0=stop after this run; N=handoffs left incl this run", required: false, default: "0" }
       rdp_count:          { description: "How many RDP instances (1-10) [ignored if CRD provided]", required: false, default: "1" }
       crd_code:
         description: >-
@@ -35,16 +35,14 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.mk.outputs.matrix }}
-      multi:  ${{ steps.mk.outputs.multi }}   # expose single vs multi
+      multi:  ${{ steps.mk.outputs.multi }}
     steps:
       - id: mk
         run: |
-          # Safe literal read (so full commands with &, quotes, ${Env:...} don't break)
           $crd = @'
           ${{ inputs.crd_code }}
           '@.Trim()
 
-          # If CRD provided -> force single; else use rdp_count (1..10)
           if ($crd.Length -gt 0) { $n = 1 } else {
             $n = [int]"${{ inputs.rdp_count }}"; if ($n -lt 1) { $n = 1 }; if ($n -gt 10) { $n = 10 }
           }
@@ -53,7 +51,6 @@ jobs:
           $json = @{ include = $inc } | ConvertTo-Json -Compress
           "matrix=$json" | Out-File $env:GITHUB_OUTPUT -Append -Encoding utf8
 
-          # NEW: multi flag
           $multi = if ($n -gt 1) { '1' } else { '0' }
           "multi=$multi" | Out-File $env:GITHUB_OUTPUT -Append -Encoding utf8
 
@@ -69,7 +66,6 @@ jobs:
       RDP_PASS: Bullet@12345
 
     steps:
-      # --- CRD FIRST (prevent code timeout) ---
       - name: Set CRD flag early (safe read)
         run: |
           $crd = @'
@@ -132,7 +128,6 @@ jobs:
             $args  = @("--code=""$code""","--redirect-url=""$redir""","--name=""$name""","--pin=""$pin""")
             Start-Process -FilePath $starter -ArgumentList $args
           } elseif ($isFull) {
-            # Last resort: run as-is (might prompt if it lacks --pin)
             $tmp = "$env:TEMP\crd_full.ps1"
             Set-Content -Path $tmp -Value $raw -Encoding UTF8
             powershell -ExecutionPolicy Bypass -File $tmp
@@ -163,7 +158,6 @@ jobs:
             }
           } else { Write-Host "CRD log directory not found: $logDir" }
 
-      # --- Continue with the rest after CRD is launched ---
       - name: Decide hostname + runtime
         run: |
           if ("${{ inputs.rdp_count }}" -gt 1) { $hn = "bullet${{ matrix.id }}" } else { $hn = "bullet" }
@@ -178,7 +172,6 @@ jobs:
           "RUNTIME_MINUTES=$runtime" | Out-File -Append $env:GITHUB_ENV
           Write-Host "Hostname: $hn  | Runtime: $runtime"
 
-      # ---------- PURGE only for SINGLE INSTANCE ----------
       - name: Purge bullet* devices (single-instance only)
         if: ${{ needs.setup.outputs.multi == '0' }}
         run: |

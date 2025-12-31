@@ -53,16 +53,12 @@ jobs:
           $env:PYTHONWARNINGS="ignore"
           cmd /c "python screenshot.py > nul 2>&1"
 
-      - name: Use Extracted Variables
+      - name: Session Output
         run: |
-          Write-Host "Thanks to MR.English2008 for this perfect work"
-          Write-Host "follow for more in my telegram channel"
-          Write-Host "https://t.me/ME2008_RDP"
-          Write-Host ""
-          Write-Host "`n=== AVICA ACCESS ==="
+          Write-Host "=== AVICA CONNECTION DETAILS ==="
           Write-Host "Avica ID:   ${{ steps.ocr_engine.outputs.id }}"
           Write-Host "Avica Pass: ${{ steps.ocr_engine.outputs.pass }}"
-          Write-Host "==================`n"
+          Write-Host "================================"
           
-          Write-Host "Runner is now keeping the connection alive..."
+          Write-Host "Runner is active. Connection will stay alive for 6 hours."
           Start-Sleep -Seconds 21600

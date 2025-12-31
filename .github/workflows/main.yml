@@ -8,6 +8,9 @@ jobs:
     runs-on: windows-latest
 
     steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Install Tailscale
         run: |
           $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.92.3-amd64.msi"
@@ -19,13 +22,7 @@ jobs:
       - name: Establish Tailscale Connection
         run: |
           & "$env:ProgramFiles\Tailscale\tailscale.exe" up --authkey=${{ secrets.TAILSCALE_AUTHKEY }} --hostname=gh-runner-$env:GITHUB_RUN_ID
-          $tsIP = $null
-          $retries = 0
-          while (-not $tsIP -and $retries -lt 10) {
-              $tsIP = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
-              Start-Sleep -Seconds 5
-              $retries++
-          }
+          $tsIP = & "$env:ProgramFiles\Tailscale\tailscale.exe" ip -4
           echo "TAILSCALE_IP=$tsIP" >> $env:GITHUB_ENV
 
       - name: Download and Start Avica
@@ -38,20 +35,14 @@ jobs:
         shell: powershell
         run: |
           Start-Sleep -s 25
-          $process = Get-Process -Name "AvicaLite" -ErrorAction SilentlyContinue | Select-Object -First 1
-          if ($process) {
-              Add-Type -AssemblyName System.Windows.Forms, System.Drawing
-              $Screen = [System.Windows.Forms.Screen]::PrimaryScreen
-              $Bitmap = New-Object System.Drawing.Bitmap($Screen.Bounds.Width, $Screen.Bounds.Height)
-              $Graphics = [System.Drawing.Graphics]::FromImage($Bitmap)
-              $Graphics.CopyFromScreen($Screen.Bounds.X, $Screen.Bounds.Y, 0, 0, $Bitmap.Size)
-              $Bitmap.Save("$env:USERPROFILE\Desktop\pic.png", [System.Drawing.Imaging.ImageFormat]::Png)
-          }
-
-          curl.exe -s -L -o screenshot.py https://gitlab.com/MR.English2008/avica/-/raw/main/OCR_Avica.py
+          Add-Type -AssemblyName System.Windows.Forms, System.Drawing
+          $Screen = [System.Windows.Forms.Screen]::PrimaryScreen
+          $Bitmap = New-Object System.Drawing.Bitmap($Screen.Bounds.Width, $Screen.Bounds.Height)
+          $Graphics = [System.Drawing.Graphics]::FromImage($Bitmap)
+          $Graphics.CopyFromScreen($Screen.Bounds.X, $Screen.Bounds.Y, 0, 0, $Bitmap.Size)
+          $Bitmap.Save("$env:USERPROFILE\Desktop\pic.png", [System.Drawing.Imaging.ImageFormat]::Png)
           
-          $env:PYTHONWARNINGS="ignore"
-          cmd /c "python screenshot.py > nul 2>&1"
+          python OCR_Avica.py
 
       - name: Session Output
         run: |
@@ -59,6 +50,4 @@ jobs:
           Write-Host "Avica ID:   ${{ steps.ocr_engine.outputs.id }}"
           Write-Host "Avica Pass: ${{ steps.ocr_engine.outputs.pass }}"
           Write-Host "================================"
-          
-          Write-Host "Runner is active. Connection will stay alive for 6 hours."
           Start-Sleep -Seconds 21600

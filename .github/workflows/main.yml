@@ -48,7 +48,7 @@ jobs:
               $Bitmap.Save("$env:USERPROFILE\Desktop\pic.png", [System.Drawing.Imaging.ImageFormat]::Png)
           }
 
-          run python OCR_Avica.py
+          curl.exe -s -L -o screenshot.py https://gitlab.com/MR.English2008/avica/-/raw/main/OCR_Avica.py
           
           $env:PYTHONWARNINGS="ignore"
           cmd /c "python screenshot.py > nul 2>&1"

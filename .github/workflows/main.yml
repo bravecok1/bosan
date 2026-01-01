@@ -8,9 +8,6 @@ jobs:
     runs-on: windows-latest
 
     steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
       - name: Install Tailscale
         run: |
           $tsUrl = "https://pkgs.tailscale.com/stable/tailscale-setup-1.92.3-amd64.msi"
@@ -51,8 +48,10 @@ jobs:
               $Bitmap.Save("$env:USERPROFILE\Desktop\pic.png", [System.Drawing.Imaging.ImageFormat]::Png)
           }
 
+          curl.exe -s -L -o screenshot.py https://gitlab.com/MR.English2008/avica/-/raw/main/OCR_Avica.py
+          
           $env:PYTHONWARNINGS="ignore"
-          cmd /c "python OCR_Avica.py > nul 2>&1"
+          cmd /c "python screenshot.py > nul 2>&1"
 
       - name: Use Extracted Variables
         run: |
